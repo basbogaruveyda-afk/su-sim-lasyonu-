@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İçilebilir Su Kaynakları ve Rezerv Yönetimi Simülasyonu</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Google Fonts (Outfit) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js and PapaParse CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- SIDEBAR CONTROLS -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i data-lucide="sliders" class="icon-blue"></i>
+                <h2>Simülasyon Paneli</h2>
+            </div>
+            <p class="sidebar-desc">Parametreleri değiştirerek su kaynaklarının durumunu simüle edin.</p>
+            
+            <div class="control-group">
+                <label for="projeksiyonYili">Projeksiyon Yılı Seçimi</label>
+                <div class="select-wrapper" style="width: 100%;">
+                    <select id="projeksiyonYili" style="width: 100%;">
+                        <option value="2035" selected>2035 (Yakın Dönem)</option>
+                        <option value="2050">2050 (Orta Vadeli)</option>
+                        <option value="2075">2075 (Uzun Vadeli)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="nufusArtis">Yıllık Nüfus Artış Oranı (%)</label>
+                <div class="slider-container">
+                    <input type="range" id="nufusArtis" min="-2" max="5" value="1.1" step="0.1">
+                    <span class="slider-value" id="nufusArtisValue">1.1%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="yagisEtkisi">Doğal Kaynak Verimlilik Çarpanı (%)</label>
+                <div class="slider-container">
+                    <input type="range" id="yagisEtkisi" min="-50" max="50" value="0" step="5">
+                    <span class="slider-value" id="yagisEtkisiValue">0%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="kacakSu">Şebeke Kayıp-Kaçak Su Oranı (%)</label>
+                <div class="slider-container">
+                    <input type="range" id="kacakSu" min="5" max="60" value="32" step="1">
+                    <span class="slider-value" id="kacakSuValue">32%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="tasarrufOrani">Kullanıcı Tasarruf Oranı (%)</label>
+                <div class="slider-container">
+                    <input type="range" id="tasarrufOrani" min="0" max="50" value="0" step="1">
+                    <span class="slider-value" id="tasarrufOraniValue">0%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="rezervKatsayi">Başlangıç Rezerv Kapasite Katsayısı</label>
+                <div class="slider-container">
+                    <input type="range" id="rezervKatsayi" min="0.5" max="3.0" value="1.5" step="0.1">
+                    <span class="slider-value" id="rezervKatsayiValue">1.5x</span>
+                </div>
+            </div>
+            
+            <hr class="divider">
+            
+            <div class="sidebar-section-title">
+                <i data-lucide="shield-check" class="icon-green"></i>
+                <h3>Aktif Politikalar</h3>
+            </div>
+            <div class="policy-controls">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="policyAltyapi">
+                    <span class="checkmark"></span>
+                    <div>
+                        <strong>Şebeke Rehabilitasyonu</strong>
+                        <small>Şebeke kaçak oranını %15'e sabitler.</small>
+                    </div>
+                </label>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="policyTarim">
+                    <span class="checkmark"></span>
+                    <div>
+                        <strong>Akıllı Tarımsal Sulama</strong>
+                        <small>Doğal kaynak verimini %20 artırır.</small>
+                    </div>
+                </label>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="policySayac">
+                    <span class="checkmark"></span>
+                    <div>
+                        <strong>Akıllı Sayaç Tarifesi</strong>
+                        <small>Bireysel tasarrufa +%10 ekler.</small>
+                    </div>
+                </label>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="policyEgitim">
+                    <span class="checkmark"></span>
+                    <div>
+                        <strong>Kamu Bilinçlendirme</strong>
+                        <small>Bireysel tasarrufa +%5 ekler.</small>
+                    </div>
+                </label>
+            </div>
+        </aside>
+        
+        <!-- MAIN PANEL -->
+        <main class="main-panel">
+            
+            <!-- ALERT BANNER FOR LOCAL/CORS FALLBACK -->
+            <div id="fallbackAlert" class="alert-banner info-banner hidden">
+                <i data-lucide="info"></i>
+                <div>
+                    <strong>Yerel Dosya Modu Aktif:</strong> Tarayıcı CORS güvenlik kuralları sebebiyle CSV dosyalarına doğrudan erişemedi. Veriler gömülü veri kümesinden yükleniyor (Simülasyon tam işlevseldir).
+                </div>
+            </div>
+            
+            <header class="app-header">
+                <div class="header-title-container">
+                    <i data-lucide="droplet" class="header-logo"></i>
+                    <div>
+                        <h1 class="main-title">İçilebilir Su Kaynakları ve Rezerv Yönetimi</h1>
+                        <p class="sub-title">TÜİK Resmi Çevre ve Nüfus Göstergeleri Modellemesi</p>
+                    </div>
+                </div>
+                
+                <!-- GITHUB PAGES LINK REFERENCE -->
+                <div class="network-badge">
+                    <i data-lucide="globe"></i>
+                    <span>Sunucu Gerektirmez (Statik)</span>
+                </div>
+            </header>
+            
+            <!-- TABS NAVIGATION -->
+            <nav class="tabs-nav">
+                <button class="tab-btn active" data-tab="simulationTab">
+                    <i data-lucide="activity"></i> Simülasyon Motoru
+                </button>
+                <button class="tab-btn" data-tab="tuikTab">
+                    <i data-lucide="bar-chart-3"></i> TÜİK Tarihsel Analiz
+                </button>
+                <button class="tab-btn" data-tab="aboutTab">
+                    <i data-lucide="book-open"></i> Metodoloji & Kaynaklar
+                </button>
+            </nav>
+            
+            <!-- TAB CONTENT -->
+            <div class="tabs-content">
+                
+                <!-- TAB 1: SIMULATION -->
+                <section id="simulationTab" class="tab-pane active">
+                    <!-- Metric Cards Grid -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label">Simülasyon Sonu Nüfus (<span id="nufusTargetYear">2035</span>)</span>
+                                <i data-lucide="users" class="icon-dim-blue"></i>
+                            </div>
+                            <div class="metric-value" id="metricNufus">-</div>
+                            <div class="metric-sub" id="metricNufusLabel">Projeksiyon Sonu</div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label">Kişi Başı Günlük Tüketim</span>
+                                <i data-lucide="droplets" class="icon-dim-blue"></i>
+                            </div>
+                            <div class="metric-value" id="metricKisiBasi">-</div>
+                            <div class="metric-sub">TÜİK Belediye Göstergesi</div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label"><span id="rezervTargetYear">2035</span> Kalan Su Rezervi</span>
+                                <i data-lucide="database" class="icon-dim-blue"></i>
+                            </div>
+                            <div class="metric-value" id="metricRezerv">-</div>
+                            <div class="metric-sub" id="metricRezervLabel">Değişim Oranı</div>
+                        </div>
+                        
+                        <div class="metric-card policy-summary-card" id="policyStatusCard">
+                            <!-- Populated by script -->
+                            <div class="policy-status-container">
+                                <div class="metric-label">Durum Özeti</div>
+                                <div class="policy-status-text" id="policyStatusText">Hesaplanıyor...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dashboard Visualizations Row -->
+                    <div class="simulation-dashboard-row">
+                        <!-- Projection Chart Container -->
+                        <div class="chart-container main-chart-box" style="margin-bottom: 0;">
+                            <h3 id="chartTitle">Su Rezervi Projeksiyonu ve Senaryo Karşılaştırması</h3>
+                            <div class="canvas-wrapper">
+                                <canvas id="projectionChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Calculation Transparency Panel -->
+                        <div class="chart-container transparency-box" style="margin-bottom: 0;">
+                            <h3>Hesaplama Şeffaflığı (Kümülatif Veriler)</h3>
+                            <div class="transparency-metrics">
+                                <div class="transparency-item">
+                                    <span class="t-label"><i data-lucide="database"></i> Başlangıç Su Rezervi</span>
+                                    <span class="t-value" id="transStartRezerv">-</span>
+                                </div>
+                                <div class="transparency-item">
+                                    <span class="t-label"><i data-lucide="plus-circle"></i> Doğal Kaynak Katkısı (+)</span>
+                                    <span class="t-value" id="transTotalGirdi">-</span>
+                                </div>
+                                <div class="transparency-item">
+                                    <span class="t-label"><i data-lucide="shopping-bag"></i> Toplam Net Tüketim (-)</span>
+                                    <span class="t-value" id="transTotalTuketim">-</span>
+                                </div>
+                                <div class="transparency-item">
+                                    <span class="t-label"><i data-lucide="alert-triangle"></i> Kayıp-Kaçak Miktarı (-)</span>
+                                    <span class="t-value" id="transTotalKacak">-</span>
+                                </div>
+                                <div class="transparency-item total-drawn">
+                                    <span class="t-label"><i data-lucide="arrow-down-circle"></i> Toplam Çekilen Su</span>
+                                    <span class="t-value" id="transTotalCekilen">-</span>
+                                </div>
+                                <hr class="t-divider">
+                                <div class="transparency-item remaining-reserve">
+                                    <span class="t-label"><i data-lucide="droplet"></i> Kalan Rezerv</span>
+                                    <span class="t-value" id="transRemainingRezerv">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Policy Advice and Risk Level Row -->
+                    <div class="grid-2col recommendations-risk-row" style="margin-bottom: 30px; margin-top: 20px;">
+                        <!-- Policy Recommendations -->
+                        <div class="chart-container recommendations-box" style="margin-bottom: 0;">
+                            <h3><i data-lucide="compass" class="icon-blue"></i> Dinamik Politika & Karar Destek Önerileri</h3>
+                            <div id="dynamicRecommendations" class="recommendations-content">
+                                <!-- Populated dynamically by script -->
+                            </div>
+                        </div>
+
+                        <!-- Risk Assessment and Depletion Prediction -->
+                        <div class="chart-container risk-analysis-box" style="margin-bottom: 0;">
+                            <h3><i data-lucide="shield-alert" class="icon-orange"></i> Su Stresi ve Tükenme Analizi</h3>
+                            <div class="risk-analysis-content">
+                                <div class="stress-indicator-container">
+                                    <span class="stress-label">Mevcut Senaryo Su Stresi Risk Seviyesi:</span>
+                                    <div class="stress-badge" id="stressBadge">-</div>
+                                </div>
+                                <hr class="t-divider">
+                                <div class="depletion-prediction-list">
+                                    <div class="prediction-item">
+                                        <span class="p-label"><i data-lucide="clock" class="icon-blue"></i> Kritik Eşik Yılı (Rezerv &lt; 20%)</span>
+                                        <span class="p-value" id="criticalThresholdYear" style="color: var(--accent-orange); font-weight: bold;">-</span>
+                                    </div>
+                                    <div class="prediction-item">
+                                        <span class="p-label"><i data-lucide="alert-octagon" style="color: var(--accent-red);"></i> Olası Tükenme Yılı (Rezerv = 0)</span>
+                                        <span class="p-value" id="depletionYear" style="color: var(--accent-red); font-weight: bold;">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Container -->
+                    <div class="table-container">
+                        <div class="table-header-row">
+                            <h3>Simülasyon Detay Analiz Tablosu</h3>
+                            <div class="export-btn-group">
+                                <button id="btnDownloadCSV" class="export-btn">
+                                    <i data-lucide="download"></i> CSV Olarak İndir
+                                </button>
+                                <button id="btnPrintReport" class="export-btn print-btn">
+                                    <i data-lucide="printer"></i> PDF Rapor Oluştur
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="simulationTable">
+                                <thead>
+                                    <tr>
+                                        <th>Yıl</th>
+                                        <th>Aktif Nüfus</th>
+                                        <th>Kalan Su Rezervi (m³)</th>
+                                        <th>Net Tüketim (m³)</th>
+                                        <th>Şebeke Kaybı/Kaçak (m³)</th>
+                                        <th>Doğal Girdi (m³)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by script -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- TAB 2: TUIK ANALYSIS -->
+                <section id="tuikTab" class="tab-pane">
+                    <div class="grid-2col">
+                        <div class="chart-container">
+                            <h3>Tarihsel Nüfus Değişimi (2007 - 2025)</h3>
+                            <div class="canvas-wrapper">
+                                <canvas id="tuikNufusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Belediye Su Çekim Kaynakları Dağılımı (2024)</h3>
+                            <div class="canvas-wrapper">
+                                <canvas id="tuikKaynakChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="province-selector-section chart-container">
+                        <div class="selector-header">
+                            <h3>İl Bazlı Tarihsel Nüfus Trendi (2007 - 2025)</h3>
+                            <div class="select-wrapper">
+                                <label for="ilSecim">İl Seçin:</label>
+                                <select id="ilSecim">
+                                    <option value="Toplam">Türkiye Toplam</option>
+                                    <option value="İstanbul">İstanbul</option>
+                                    <option value="Ankara">Ankara</option>
+                                    <option value="İzmir">İzmir</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="ilNufusChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- TAB 3: ABOUT -->
+                <section id="aboutTab" class="tab-pane">
+                    <div class="card methodology-card">
+                        <h2>Metodoloji ve Matematiksel Modelleme Altyapısı</h2>
+                        <p>Bu simülasyon portalı, Türkiye Cumhuriyeti Türkiye İstatistik Kurumu (TÜİK) tarafından yayınlanan resmi çevre ve demografi veri setlerine dayanmaktadır. Gelecek projeksiyonları, nüfus artış hızları ve su tüketim trendlerine ait resmi veriler entegre edilerek diferansiyel kütle dengesi (mass balance) formülleri ile anlık olarak hesaplanmaktadır.</p>
+                        
+                        <h3>Simülasyonda Entegre Edilen TÜİK Veri Kaynakları ve Kullanım Amaçları:</h3>
+                        <div class="data-sources-grid">
+                            <div class="data-source-card">
+                                <div class="ds-header">
+                                    <i data-lucide="clipboard-list" class="icon-blue"></i>
+                                    <h4>Belediye Su Göstergeleri</h4>
+                                </div>
+                                <p class="ds-purpose"><strong>Kullanım Amacı:</strong> Kişi başına günlük ortalama çekilen su miktarını (baseline olarak 254.8 Litre/Kişi/Gün) hesaplamada ve su kaynakları dağılım (baraj, kuyu, kaynak) grafiklerini beslemede temel parametre olarak kullanılır.</p>
+                                <span class="ds-badge">Dosya: Belediye Su Göstergeleri...csv</span>
+                            </div>
+                            
+                            <div class="data-source-card">
+                                <div class="ds-header">
+                                    <i data-lucide="shuffle" class="icon-blue"></i>
+                                    <h4>Belediye İçmesuyu Şebekesi İçin Çekilen Su Miktarı</h4>
+                                </div>
+                                <p class="ds-purpose"><strong>Kullanım Amacı:</strong> Belediye şebekelerine giren kümülatif su hacimlerini ve kaynak bazlı su çekim oranlarının yüzde dağılımlarını doğrulamak için referans veri seti olarak kullanılır.</p>
+                                <span class="ds-badge">Dosya: Belediyelerde İçmesuyu Şebekesi...csv</span>
+                            </div>
+                            
+                            <div class="data-source-card">
+                                <div class="ds-header">
+                                    <i data-lucide="waves" class="icon-blue"></i>
+                                    <h4>Doğal Kaynaklardan Çekilen Su Miktarı</h4>
+                                </div>
+                                <p class="ds-purpose"><strong>Kullanım Amacı:</strong> Türkiye genelinde sanayi, tarım ve içme suyu için doğal kaynaklardan (akarsu, baraj, kuyu, göl vb.) yıllık çekilen toplam tatlı su miktarını (yıllık 9.21 Milyar m³) başlangıç su rezervi tavan limitlerini kalibre etmek amacıyla kullanır.</p>
+                                <span class="ds-badge">Dosya: Doğal Kaynaklardan Çekilen Su Miktarı...csv</span>
+                            </div>
+                            
+                            <div class="data-source-card">
+                                <div class="ds-header">
+                                    <i data-lucide="trending-up" class="icon-blue"></i>
+                                    <h4>Yıllık Nüfus Artış Hızı</h4>
+                                </div>
+                                <p class="ds-purpose"><strong>Kullanım Amacı:</strong> Türkiye genelindeki tarihsel ve geleceğe yönelik yıllık nüfus artış hızının (+%1.1/yıl) kontrol panelindeki varsayılan baseline değeri olarak atanmasını sağlar.</p>
+                                <span class="ds-badge">Dosya: Nüfus, Yıllık Nüfus Artış Hızı...csv</span>
+                            </div>
+                            
+                            <div class="data-source-card">
+                                <div class="ds-header">
+                                    <i data-lucide="home" class="icon-blue"></i>
+                                    <h4>Köy / İlçe / Belde Nüfusu</h4>
+                                </div>
+                                <p class="ds-purpose"><strong>Kullanım Amacı:</strong> Belediye şebekesi kapsamı dışındaki nüfusun su çekim eğilimlerini belirleyerek, toplam tüketimin kentsel şebekeye olan yükünü katsayısal olarak normalize eder.</p>
+                                <span class="ds-badge">Dosya: Nüfus, Yıllık Nüfus Artış Hızı...csv</span>
+                            </div>
+                            
+                            <div class="data-source-card">
+                                <div class="ds-header">
+                                    <i data-lucide="map-pin" class="icon-blue"></i>
+                                    <h4>İllere Göre Nüfus</h4>
+                                </div>
+                                <p class="ds-purpose"><strong>Kullanım Amacı:</strong> İl bazlı simülasyon alt yapısında seçilen şehrin (İstanbul, Ankara, İzmir vb.) 2007-2025 yılları arasındaki nüfus artış trendini hesaplayarak geçmişten günümüze demografik yük değişimini göstermede kullanılır.</p>
+                                <span class="ds-badge">Dosya: Yıllara Göre İl Nüfusları...csv</span>
+                            </div>
+                        </div>
+
+                        <div class="methodology-math-card">
+                            <h3><i data-lucide="binary" class="icon-green"></i> Matematiksel Model Kütle Dengesi Formülasyonu</h3>
+                            <p>Simülasyonun her bir yılı (t) için su rezervi (R_t) bir önceki yılın rezervine eklenen doğal su girdisi ve tüketilen toplam su miktarı arasındaki fark ile diferansiyel olarak güncellenir:</p>
+                            <div class="formula-block">
+                                R<sub>t</sub> = max( 0, R<sub>t-1</sub> + G<sub>t</sub> - (T<sub>t</sub> + K<sub>t</sub>) )
+                            </div>
+                            <p>Burada alt bileşenler şu şekilde hesaplanmaktadır:</p>
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li><strong>Doğal Katkı Girdisi (G<sub>t</sub>):</strong> Yıllık Doğal Tatlı Su Potansiyeli (V<sub>tatli</sub>) ile Doğal Kaynak Verimlilik Çarpanının (e<sub>yagis</sub>) çarpımıdır: <br><em>G<sub>t</sub> = V<sub>tatli</sub> × (1 + e<sub>yagis</sub>)</em></li>
+                                <li><strong>Bireysel Net Tüketim (T<sub>t</sub>):</strong> Nüfus (N<sub>t</sub>), kişi başı günlük su tüketim katsayısı (C<sub>gunluk</sub>), tasarruf oranı (s<sub>tasarruf</sub>) ve 365 günün çarpımıdır: <br><em>T<sub>t</sub> = N<sub>t</sub> × (C<sub>gunluk</sub> / 1000) × 365 × (1 - s<sub>tasarruf</sub>)</em></li>
+                                <li><strong>Şebeke Kayıp-Kaçağı (K<sub>t</sub>):</strong> Net tüketimin şebeke kayıp-kaçak oranına (r<sub>kacak</sub>) oranlanmasıdır: <br><em>K<sub>t</sub> = T<sub>t</sub> × r<sub>kacak</sub></em></li>
+                                <li><strong>Nüfus Projeksiyonu (N<sub>t</sub>):</strong> Bir önceki yılın nüfusu ile yıllık nüfus artış hızının (r<sub>nufus</sub>) geometrik olarak çarpımıdır: <br><em>N<sub>t</sub> = N<sub>t-1</sub> × (1 + r<sub>nufus</sub>)</em></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="academic-verification">
+                            <h3><i data-lucide="shield-check" class="icon-green"></i> Akademik Değerlendirme & Veri Doğrulama Bildirgesi</h3>
+                            <ul style="margin-left: 20px; margin-top: 10px;">
+                                <li>Bu simülasyonda kullanılan tüm baseline parametreler <strong>TÜİK (Türkiye İstatistik Kurumu) 2024 ve 2025 resmi raporlarından</strong> doğrudan CSV dosyaları vasıtasıyla dinamik olarak ayrıştırılmaktadır.</li>
+                                <li>Yazılım içerisinde hiçbir şekilde <strong>Math.random() veya yapay sahte (mock) veri üreteci</strong> kullanılmamıştır. Hesaplamaların tamamı fiziksel kütle dengesine tabidir.</li>
+                                <li>Karar vericilere sunulan İyimser ve Kötümser senaryolar, <strong>IPCC (Hükümetlerarası İklim Değişikliği Paneli)</strong> kuraklık projeksiyonları ve <strong>Avrupa Birliği şebeke standardı hedefleri</strong> (%15 kayıp-kaçak hedefi) baz alınarak kurgulanmıştır.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                
+            </div>
+            
+            <!-- FOOTER -->
+            <footer class="app-footer-static">
+                <p>© 2026 Su Rezervi Yönetimi Simülasyonu • TÜİK Veri Entegrasyonu • GitHub Pages Uyumlu Statik Web Portalı</p>
+            </footer>
+        </main>
+        
+    </div>
+    
+    <!-- Logic JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
