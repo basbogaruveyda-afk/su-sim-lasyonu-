@@ -1,0 +1,13 @@
+﻿SU_KAYNAK_TUR;Su Kaynak Türü;BELEDIYE_NITELIK_SU;Belediye Nitelik Su;REF_AREA;Coğrafi Kapsam (TR);UNIT_MEASURE;Ölçü Birimi (BM3);Zaman (TIME_PERIOD);Gözlem;GOZLEM_DURUMU;Gözlem Durumu;ZAMAN_BICIMI;Zaman Formatı;ONDALIK;Ondalık Basamak Sayısı;BIRIM_CARPANI;Birim Çarpanı;GIZLILIK;Gizlilik Durumu
+_T;Toplam;17;Miktar;TR;Türkiye;BM3;Bin Metreküp;2024;7467879,733;;;;;;;;;;
+_T;Toplam;18;Yüzde;TR;Türkiye;PT;Yüzde;2024;100;;;;;;;;;;
+4;Baraj;17;Miktar;TR;Türkiye;BM3;Bin Metreküp;2024;2974215,066;;;;;;;;;;
+4;Baraj;18;Yüzde;TR;Türkiye;PT;Yüzde;2024;39,8267670655858;;;;;;;;;;
+5;Kuyu;17;Miktar;TR;Türkiye;BM3;Bin Metreküp;2024;2228032,607;;;;;;;;;;
+5;Kuyu;18;Yüzde;TR;Türkiye;PT;Yüzde;2024;29,8348753148031;;;;;;;;;;
+1;Kaynak;17;Miktar;TR;Türkiye;BM3;Bin Metreküp;2024;1256417,284;;;;;;;;;;
+1;Kaynak;18;Yüzde;TR;Türkiye;PT;Yüzde;2024;16,824283851921;;;;;;;;;;
+3;Akarsu;17;Miktar;TR;Türkiye;BM3;Bin Metreküp;2024;716517,513;;;;;;;;;;
+3;Akarsu;18;Yüzde;TR;Türkiye;PT;Yüzde;2024;9,59465790314971;;;;;;;;;;
+2;Göl / Gölet / Deniz;17;Miktar;TR;Türkiye;BM3;Bin Metreküp;2024;292697,263;;;;;;;;;;
+2;Göl / Gölet / Deniz;18;Yüzde;TR;Türkiye;PT;Yüzde;2024;3,91941586454041;;;;;;;;;;
